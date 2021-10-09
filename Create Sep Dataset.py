@@ -1,8 +1,7 @@
 import numpy as np
 import os
 import random
-random.seed(17)
-import skimage.transform
+import skimage.transform as sk_trans
 import WaveGlow_functions as wf
 import torch
 from tqdm import tqdm
@@ -98,16 +97,16 @@ for train_valid in ['train','valid']:
 		ultmel_len = np.min((len(ult_data), len(mel_data)))
 		ult_data = ult_data[0:ultmel_len]
 		mel_data = mel_data[0:ultmel_len]
-
-		# print(wav_file, ult_data.shape, mel_data.shape)
+		
+		# print(wav_file.shape, ult_data.shape, mel_data.shape)
 
 		ult_len = 0
 
-		for i in range(int(ultmel_len_ori / frame_selected_from)):
+		for i in range(int(ultmel_len / frame_selected_from)):
 			frame_idx = i * frame_selected_from
 			ult[train_valid][ultmel_size[train_valid] + i] = \
-			skimage.transform.resize(ult_data[frame_idx], 
-                            (n_lines, n_pixels_reduced), preserve_range = True)
+			sk_trans.resize(ult_data[frame_idx], (n_lines, n_pixels_reduced), 
+							preserve_range = True)
 			melspec[train_valid][ultmel_size[train_valid] + i, : n_melspec] = \ 
 			mel_data[frame_idx]
 			if train_valid == 'train': 
@@ -122,14 +121,15 @@ for train_valid in ['train','valid']:
 	ult[train_valid] = ult[train_valid][0: ultmel_size[train_valid]]
 	melspec[train_valid] = melspec[train_valid][0: ultmel_size[train_valid]]
 	
-	# rescale input to [-1,1]
+	# scale input to [-1,1]
 	ult[train_valid] /= 255
 	ult[train_valid] -= 0.5
 	ult[train_valid] *= 2
+	
 	# reshape ult for CNN
 	ult[train_valid] = np.reshape(ult[train_valid], (-1, n_lines, n_pixels_reduced))
 
-	np.save(dir_tv + train_valid + '_ult_.npy', ult[train_valid])
+	np.save(dir_tv + train_valid + '_ult.npy', ult[train_valid])
 	np.save(dir_tv + train_valid + '_melspec.npy', melspec[train_valid])
 	
 	print('numpy saved')
