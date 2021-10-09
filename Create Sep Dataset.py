@@ -116,7 +116,7 @@ for train_valid in ['train','valid']:
 
 		ultmel_size[train_valid] += ult_len
 
-		print('frames collected for', train_valid, ':', ultmel_size[train_valid])
+		print('frames for', train_valid, ':', ultmel_size[train_valid])
 
 	ult[train_valid] = ult[train_valid][0: ultmel_size[train_valid]]
 	melspec[train_valid] = melspec[train_valid][0: ultmel_size[train_valid]]
