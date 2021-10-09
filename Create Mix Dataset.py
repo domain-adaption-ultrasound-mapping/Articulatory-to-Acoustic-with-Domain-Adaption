@@ -16,7 +16,7 @@ framesPerSec = 22050 / 181
 n_lines = 63
 n_pixels = 412
 n_pixels_reduced = 103
-
+ 
 frame_selected_from = 10
 ave_frame = 1000
 random_seed = 32
