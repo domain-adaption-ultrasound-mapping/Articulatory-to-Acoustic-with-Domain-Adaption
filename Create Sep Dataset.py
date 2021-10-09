@@ -77,9 +77,9 @@ for train_valid in ['train','valid']:
 				wav_file_all.append(speaker_path + wav_name)
 				speaker_all.append(speaker)
 	
-	n_ave_ult_frames = int(len(ult_file_all) * ave_frame / frame_selected_from)
-	ult[train_valid] = np.empty((n_ave_ult_frames, n_lines, n_pixels_reduced))
-	melspec[train_valid] = np.empty((n_ave_ult_frames, n_melspec + 1))
+	n_ult_frames = int(len(ult_file_all) * ave_frame / frame_selected_from)
+	ult[train_valid] = np.empty((n_ult_frames, n_lines, n_pixels_reduced))
+	melspec[train_valid] = np.empty((n_ult_frames, n_melspec + 1))
 	if train_valid == 'valid':
 		melspec[train_valid][:, -1] = -1
 	ultmel_size[train_valid] = 0
