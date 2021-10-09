@@ -92,7 +92,7 @@ for train_valid in ['train','valid']:
 		speaker = speaker_all[file_index]
 		
 		ult_data = read_ult(ult_file)
-		mel_data = WaveGlow_functions.get_mel(wav_file, stft)
+		mel_data = wf.get_mel(wav_file, stft)
 		mel_data = np.fliplr(np.rot90(mel_data.data.numpy(), axes = (1,0)))
 		
 		ultmel_len = np.min((len(ult_data), len(mel_data)))
