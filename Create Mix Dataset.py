@@ -1,8 +1,7 @@
 import numpy as np
 import os
 import random
-random.seed(17)
-import skimage.transform
+import skimage.transform as sk_trans
 import WaveGlow_functions as wf
 import torch
 from tqdm import tqdm
@@ -39,18 +38,43 @@ dir_base = '..//..//data//UltraSuite//core-uxtd//core//'
 dir_tv = '..//..//data//SpeakerMix//'
 speakers = os.listdir(dir_base)
 
-speaker_dic = dict()
-speaker_dic['train'] = []
-speaker_dic['valid'] = []
-speaker_train_num = int(len(speakers) * train_rate)
 speaker_idx_dic = dict()
+for speaker_idx, speaker in enumerate(speakers):
+    speaker_idx_dic[speaker] = speaker_idx
 
-for speaker_index in range(len(speakers)):
-	if speaker_index < speaker_train_num:
-		speaker_dic['train'].append(speakers[index])
-		speaker_i_dic[speakers[index]] = speaker_index
-	else:
-		speaker_dic['valid'].append(speakers[index])
+ult_file_all = []
+wav_file_all = []
+speaker_all = []
+
+for speaker in speakers:
+    speaker_path = dir_base + speaker + '//'
+    all_file_names = os.listdir(speaker_path)
+    for file_name in all_file_names:
+        if '.ult' in file_name:
+            ult_file_all.append(speaker_path + file_name)
+	    wav_name = file_name.split('.')[0] + '.wav'
+            wav_file_all.append(speaker_path + wav_name)
+            speaker_all.append(speaker_idx_dic[speaker])
+
+# shuffle ult & wav & speaker
+random.seed(random_seed)
+random.shuffle(ult_file_all)
+random.seed(random_seed)
+random.shuffle(wav_file_all)
+random.seed(random_seed)
+random.shuffle(speaker_all)
+
+ult_files = dict()
+wav_files = dict()
+speaker_files = dict()
+
+# split train and valid dataset
+ult_files['train'] = ult_file_all[: int(train_rate * len(ult_file_all))]
+ult_files['valid'] = ult_file_all[int(train_rate * len(ult_file_all)): ]
+wav_files['train'] = wav_file_all[: int(train_rate * len(wav_file_all))]
+wav_files['valid'] = wav_file_all[int(train_rate * len(wav_file_all)): ]
+speaker_files['train'] = speaker_file_all[: int(train_rate * len(speaker_file_all))]
+speaker_files['valid'] = speaker_file_all[int(train_rate * len(speaker_file_all)): ]
 
 ult = dict()
 melspec = dict()
@@ -58,7 +82,64 @@ ultmel_size = dict()
 
 # generate training and validation dataset
 for train_valid in ['train','valid']:
+
+	num_ult_frame = len(ult_files[train_valid])
+    n_ult_frames = int(num_ult_frame * ave_frame / frame_selected_from)
+    ult[train_valid] = np.empty((n_ult_frames, n_lines, n_pixels_reduced))
+    melspec[train_valid] = np.empty((n_ult_frames, n_melspec + 1))
+
+    ultmel_size[train_valid] = 0
+    # load all training/validation data
+    for file_index in tqdm(range(len(ult_files[train_valid]))):
+        
+        ult_file = ult_files[train_valid][file_index]
+        wav_file = wav_files[train_valid][file_index]
+		
+        ult_data = read_ult(ult_file)
+		mel_data = wf.get_mel(wav_file, stft)
+		mel_data = np.fliplr(np.rot90(mel_data.data.numpy(), axes = (1,0)))
+		
+		ultmel_len = np.min((len(ult_data), len(mel_data)))
+		ult_data = ult_data[0:ultmel_len]
+		mel_data = mel_data[0:ultmel_len]
+		
+		# print(wav_file, ult_data.shape, mel_data.shape)
+            
+        ult_len = 0
+            
+		for i in range(int(ultmel_len / frame_selected_from)):
+			frame_idx = i * frame_selected_from
+			ult[train_valid][ultmel_size[train_valid] + i] = \
+			sk_trans.resize(ult_data[frame_idx], (n_lines, n_pixels_reduced), 
+							preserve_range = True)
+			melspec[train_valid][ultmel_size[train_valid] + i, : n_melspec] = \
+			mel_data[frame_idx]
+			ult_len += 1			
+			if train_valid == 'train': 
+				melspec[train_valid][ultmel_size[train_valid] + i, -1] = \ 
+				speaker_idx_dic[speaker]
+
+		ultmel_size[train_valid] += ult_len
+		
+		print('frames collected for', train_valid, ':', ultmel_size[train_valid])
+
+
+    ult[train_valid] = ult[train_valid][0 : ultmel_size[train_valid]]
+    melspec[train_valid] = melspec[train_valid][0 : ultmel_size[train_valid]]
+    
+	# scale input to [-1,1]
+	ult[train_valid] /= 255
+	ult[train_valid] -= 0.5
+	ult[train_valid] *= 2
 	
+    # reshape ult for CNN
+    ult[train_valid] = np.reshape(ult[train_valid], (-1, n_lines, n_pixels_reduced))
+
+    train_state = 'train'
+
+    np.save(dir_tv + '//' + train_state + '_ult' + str(frame_select_in) + '_' + str(train_valid) + '.npy', ult[train_valid])
+    np.save(dir_tv + '//' + train_state + '_mel_spec' + str(frame_select_in) + '_' + str(train_valid) + '.npy', melspec[train_valid])  
+    	
 	speaker_all = []
 	ult_file_all = []
 	
@@ -96,7 +177,7 @@ for train_valid in ['train','valid']:
 		ult_data = ult_data[0:ultmel_len]
 		mel_data = mel_data[0:ultmel_len]
 
-		# print(wav_file, ult_data.shape, mel_data.shape)
+		# print(wav_file.shape, ult_data.shape, mel_data.shape)
 
 		ult_len = 0
 
@@ -123,10 +204,11 @@ for train_valid in ['train','valid']:
 	ult[train_valid] /= 255
 	ult[train_valid] -= 0.5
 	ult[train_valid] *= 2
+
 	# reshape ult for CNN
 	ult[train_valid] = np.reshape(ult[train_valid], (-1, n_lines, n_pixels_reduced))
 
-	np.save(dir_tv + train_valid + '_ult_.npy', ult[train_valid])
+	np.save(dir_tv + train_valid + '_ult.npy', ult[train_valid])
 	np.save(dir_tv + train_valid + '_melspec.npy', melspec[train_valid])
 	
 	print('numpy saved')
