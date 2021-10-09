@@ -10,7 +10,7 @@ from tqdm import tqdm
 samplingFrequency = 22050
 n_melspec = 80
 hop_length_UTI = 181 # sampling rate of ultrasound files
-
+ 
 # parameters of ultrasound images
 framesPerSec = 22050 / 181
 n_lines = 63
