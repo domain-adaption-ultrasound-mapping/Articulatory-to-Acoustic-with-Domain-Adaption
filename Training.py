@@ -82,8 +82,8 @@ class Net(nn.Module):
         return 'unfreezing done'
 
 # SO represents Source-Only method
-# ST represente ST-Adversary method
-# ID represents ID-Adversary method
+# ST represente ST-Adversarial method
+# ID represents ID-Adversarial method
 
 def load_data(dir = dir_data, ds_name = 'SpeakerSep', domain_type = 'ID'):
 
