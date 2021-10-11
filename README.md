@@ -1,1 +1,1 @@
-# Articulatory-to-Acoustic-with-Domain-Adaptation
+# Articulatory-to-Acoustic-with-Domain-Adaption
